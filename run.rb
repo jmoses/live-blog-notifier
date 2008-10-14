@@ -48,6 +48,9 @@ class IRC
               return if @irc.eof
               s = @irc.gets
               ##handle_server_input(s)
+              if s =~ /^PING :(.*)/
+                send("PONG :#{$1} #{@server}")
+              end
               puts s
           end
       end
