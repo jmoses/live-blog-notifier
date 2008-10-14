@@ -8,6 +8,9 @@ require 'simplegrowl'
 SimpleGrowl.set_password('growl')
 
 class IRC
+  attr_reader :channel
+  attr_reader :nick
+  
   def initialize(server, port, nick, channel)
       @server = server
       @port = port
@@ -18,6 +21,9 @@ class IRC
       # Send a message to the irc server and print it to the screen
       # puts "--> #{s}"
       @irc.send "#{s}\n", 0 
+  end
+  def send_msg(msg)
+    send("PRIVMSG #{@channel} :#{msg}")
   end
   def connect()
       # Connect to the IRC server
@@ -61,10 +67,16 @@ posts = []
 
 @thread = nil
 
-@@bot = IRC.new('irc.freenode.net', '6667', "GizmodoBot", "#test-gbot")
+@@bot = IRC.new('irc.freenode.net', '6667', "GizmodoBot", "#gizmodo_live_blog")
 
 Thread.new(@@bot) do |bot|
   bot.connect
+  
+  # lock channel
+  bot.send("MODE #{bot.channel} +ov #{bot.nick}")
+  bot.send("MODE #{bot.channel} +mt")
+  bot.send("TOPIC #{bot.channel} :Gizmodo Live Blog Coverage")
+  
   bot.loop  
 end
 
@@ -88,7 +100,7 @@ end
 
     end
 
-    tmp_posts.reverse.each {|p| puts p; SimpleGrowl.notify(p); @@bot.send(p); puts}
+    tmp_posts.reverse.each {|p| puts p; SimpleGrowl.notify(p); @@bot.send_msg(p); puts}
 
     
 
