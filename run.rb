@@ -7,6 +7,8 @@ require "socket"
 require 'simplegrowl'
 SimpleGrowl.set_password('growl')
 
+# Need option to turn off growl
+
 class IRC
   attr_reader :channel
   attr_reader :nick
@@ -30,6 +32,8 @@ class IRC
       @irc = TCPSocket.open(@server, @port)
       send "USER blah blah blah :blah blah"
       send "NICK #{@nick}"
+      ## Reister
+      send "PRIVMSG NickServ :identify jmoses"
       send "JOIN #{@channel}"
   end
   
@@ -54,6 +58,7 @@ class IRC
               puts s
           end
       end
+      sleep 1 ## Jesus, the CPU cycles...
     end
   end
 
@@ -70,22 +75,22 @@ posts = []
 
 @thread = nil
 
-@@bot = IRC.new('irc.freenode.net', '6667', "GizmodoBot", "#gizmodo_live_blog")
+# @@bot = IRC.new('irc.freenode.net', '6667', "GizmodoBot", "#gizmodo_live_blog")
+# 
+# Thread.new(@@bot) do |bot|
+#   bot.connect
+#   
+#   # lock channel
+#   bot.send("MODE #{bot.channel} +ov #{bot.nick}")
+#   bot.send("MODE #{bot.channel} +mt")
+#   bot.send("TOPIC #{bot.channel} :Gizmodo Live Blog Coverage")
+#   
+#   bot.loop  
+# end
 
-Thread.new(@@bot) do |bot|
-  bot.connect
-  
-  # lock channel
-  bot.send("MODE #{bot.channel} +ov #{bot.nick}")
-  bot.send("MODE #{bot.channel} +mt")
-  bot.send("TOPIC #{bot.channel} :Gizmodo Live Blog Coverage")
-  
-  bot.loop  
+def images( str )
+  str.scan( /\[img:(.*?)\]/ )
 end
-
-# IRCEvent.add_callback('endofmotd') { |event| bot.add_channel('#test_bot_1') }
-
-
 
 # @thread = Thread.new(bot, posts) do |bot, posts|
   loop do
@@ -103,7 +108,19 @@ end
 
     end
 
-    tmp_posts.reverse.each {|p| puts p; SimpleGrowl.notify(p); @@bot.send_msg(p); puts}
+    tmp_posts.reverse.each do |p|
+      if imgs = images(p) and imgs.size > 0
+        is = imgs.collect {|i| i[0] }
+        is.each {|i| `curl -s --output /tmp/#{File.basename(i)} #{i} > /dev/null` }
+        image_string = is.collect {|i| "\"/tmp/#{File.basename(i)}\"" }.join(' ')
+        `qlmanage -p #{image_string} &> /dev/null &`
+        # imgs.each {|i| i = i[0]; `curl -s --output /tmp/#{File.basename(i)} #{i} > /dev/null && open -a Preview /tmp/#{File.basename(i)}`}
+      end
+      puts p
+      SimpleGrowl.notify(p)
+      #@@bot.send_msg(p); 
+      puts
+    end
 
     
 
