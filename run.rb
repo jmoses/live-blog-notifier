@@ -5,6 +5,7 @@ require 'hpricot'
 require 'open-uri'
 require "socket"
 require 'simplegrowl'
+require 'trollop'
 SimpleGrowl.set_password('growl')
 
 # Need option to turn off growl
@@ -66,8 +67,15 @@ class IRC
 end
 
 
+opts = Trollop::options do
+  opt :viewer, "Which viewer to use", :default => "quicklook"
+end
 
+viewer = opts[:viewer]
 
+unless %w( quicklook preview ).include?(viewer)
+  Trollop::die "viewer must be one of 'quicklook', 'preview'"
+end
 
 uri = "http://live.gizmodo.com"
 
@@ -113,7 +121,12 @@ end
         is = imgs.collect {|i| i[0] }
         is.each {|i| `curl -s --output /tmp/#{File.basename(i)} #{i} > /dev/null` }
         image_string = is.collect {|i| "\"/tmp/#{File.basename(i)}\"" }.join(' ')
-        `qlmanage -p #{image_string} &> /dev/null &`
+        case viewer
+        when 'quicklook'
+          `qlmanage -p #{image_string} &> /dev/null &`
+        when 'preview'
+          `open -a Preview #{image_string} &`
+        end
         # imgs.each {|i| i = i[0]; `curl -s --output /tmp/#{File.basename(i)} #{i} > /dev/null && open -a Preview /tmp/#{File.basename(i)}`}
       end
       puts p
