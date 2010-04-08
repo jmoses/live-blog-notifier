@@ -69,6 +69,7 @@ end
 
 opts = Trollop::options do
   opt :viewer, "Which viewer to use", :default => "quicklook"
+  opt :console, "Only output to the console", :default => false
 end
 
 viewer = opts[:viewer]
@@ -96,6 +97,15 @@ posts = []
 #   bot.loop  
 # end
 
+@output = ['[37m', '[37;1m']
+@output_index = 0
+def colorize_output( output )
+  puts 27.chr + @output[@output_index] + output + 27.chr + '[0m'
+  @output_index = ( @output_index == 0 ? 1 : 0 )
+end
+
+
+
 def images( str )
   str.scan( /\[img:(.*?)\]/ )
 end
@@ -117,7 +127,7 @@ end
     end
 
     tmp_posts.reverse.each do |p|
-      if imgs = images(p) and imgs.size > 0
+      if imgs = images(p) and imgs.size > 0 and !opts[:console]
         is = imgs.collect {|i| i[0] }
         is.each {|i| `curl -s --output /tmp/#{File.basename(i)} #{i} > /dev/null` }
         image_string = is.collect {|i| "\"/tmp/#{File.basename(i)}\"" }.join(' ')
@@ -129,8 +139,8 @@ end
         end
         # imgs.each {|i| i = i[0]; `curl -s --output /tmp/#{File.basename(i)} #{i} > /dev/null && open -a Preview /tmp/#{File.basename(i)}`}
       end
-      puts p
-      SimpleGrowl.notify(p)
+      colorize_output p
+      SimpleGrowl.notify(p) unless opts[:console]
       #@@bot.send_msg(p); 
       puts
     end
@@ -143,4 +153,3 @@ end
 # end
 
 # bot.connect
-
